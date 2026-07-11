@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Login - Navkar Stationary</title>
+    <title>Admin Login - Navkar Stationery</title>
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/favicon.png') }}">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
@@ -13,9 +13,9 @@
 </head>
 <body class="login-page-bg">
     <div class="login-card">
-        <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Navkar Stationary" class="login-logo-img">
+        <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Navkar Stationery" class="login-logo-img">
         <h3 class="fw-bold mb-1 mt-2">Admin Login</h3>
-        <p class="text-muted small mb-4">Sign in to manage Navkar Stationary</p>
+        <p class="text-muted small mb-4">Sign in to manage Navkar Stationery</p>
 
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
