@@ -1,0 +1,17 @@
+<div class="top-nav">
+    <div class="brand-logo">
+        <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Navkar Stationary" class="brand-logo-img">
+        <div>
+            Navkar<br><span style="font-size: 0.75rem; font-weight:500;">Stationary</span>
+        </div>
+    </div>
+    <div class="nav-tabs-custom">
+        <a href="{{ url_for('index') }}" class="nav-tab-btn {% if active=='home' %}tab-active{% endif %}"><i class="bi bi-house mb-1"></i> Home</a>
+        <a href="{{ url_for('xerox') }}" class="nav-tab-btn {% if active=='xerox' %}tab-active{% endif %}"><i class="bi bi-printer mb-1"></i> Xerox</a>
+        <a href="{{ url_for('shop') }}" class="nav-tab-btn {% if active=='shop' %}tab-active{% endif %}"><i class="bi bi-cart mb-1"></i> Shop</a>
+        <a href="{{ url_for('login') }}" class="nav-tab-btn {% if active=='admin' %}tab-active{% endif %}"><i class="bi bi-lock-fill mb-1"></i> Admin</a>
+    </div>
+</div>
+<a href="https://wa.me/{{ whatsapp_number }}" target="_blank" class="wa-float" title="Chat with us on WhatsApp">
+    <i class="bi bi-whatsapp"></i>
+</a>
