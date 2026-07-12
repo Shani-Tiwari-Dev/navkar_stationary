@@ -39,6 +39,32 @@ app = Flask(__name__, template_folder='template')
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "navkar_stationary_secret")
 app.config['MAX_CONTENT_LENGTH'] = 15 * 1024 * 1024  # 15 MB max upload size
 
+# ---------------------------------------------------------------------------
+# Cache-busting for /static/*.
+# vercel.json sets "Cache-Control: public, max-age=31536000, immutable" on
+# everything under /static/ for performance — but that means once a browser
+# has fetched e.g. theme.css, it will NOT re-fetch it for a year, even after
+# we deploy changes (not even on a hard refresh, in some browsers). To make
+# updates actually show up, every static asset URL gets a ?v=<version> query
+# string appended, computed from that file's last-modified time. Changing the
+# file changes the URL, so it's always a fresh cache miss — the 1-year cache
+# is preserved for assets that haven't changed, and busted for ones that have.
+# ---------------------------------------------------------------------------
+_STATIC_DIR = os.path.join(app.root_path, 'static')
+
+def _static_version(filename):
+    try:
+        return str(int(os.path.getmtime(os.path.join(_STATIC_DIR, filename))))
+    except OSError:
+        return "1"
+
+@app.context_processor
+def inject_asset_version():
+    def versioned_static(filename):
+        return url_for('static', filename=filename) + '?v=' + _static_version(filename)
+    return dict(versioned_static=versioned_static)
+
+
 # Compress every HTML/CSS/JS/JSON response with gzip (falls back automatically
 # if the browser doesn't support it). This cuts payload size dramatically for
 # almost no CPU cost and helps a lot under concurrent load.
