@@ -6,29 +6,29 @@
    ========================================================================== */
 
 :root {
-  /* Citrus lime — primary brand accent (paper-plane green) */
-  --amber-50:  #FBF7EA;
-  --amber-100: #EEF6C6;
-  --amber-200: #E1F0A0;
-  --amber-300: #CFE774;
-  --amber-400: #BCDE4C;
-  --amber-500: #AAD62E;   /* primary CTA lime */
-  --amber-600: #8FB824;
-  --amber-700: #6E9019;
-  --amber-800: #4F6812;
+  /* Logo-matched orange — sampled directly from the Navkar mark (#F57917) */
+  --amber-50:  #FFF4E9;
+  --amber-100: #FFE2C4;
+  --amber-200: #FFC993;
+  --amber-300: #FCAD64;
+  --amber-400: #F9933C;
+  --amber-500: #F57917;   /* primary CTA — exact logo orange */
+  --amber-600: #DD6A0F;
+  --amber-700: #B8560D;
+  --amber-800: #8F430B;
 
   /* Ink — warm near-black used for text, outlines, sticker borders */
-  --ink-900: #1C2118;
-  --ink-800: #262C21;
-  --ink-700: #3B4333;
-  --ink-600: #565F4B;
-  --ink-400: #8B9179;
-  --ink-200: #DED6BE;
-  --ink-100: #EDE7D4;
+  --ink-900: #201B15;
+  --ink-800: #2B241C;
+  --ink-700: #423A2D;
+  --ink-600: #5F5647;
+  --ink-400: #948A78;
+  --ink-200: #E4D8C4;
+  --ink-100: #F0E7D6;
 
-  --bg-body: #AAD62E;      /* the bright lime "desk" the site card sits on */
-  --white:   #FFFCF3;      /* warm paper white used for cards */
-  --shell:   #F5EFDD;      /* nav / hero card background */
+  --bg-body: #F6B26B;      /* the warm tangerine "desk" the site card sits on */
+  --white:   #FFFCF4;      /* warm paper white used for cards */
+  --shell:   #FBF3E4;      /* nav / hero card background */
 
   --success: #2F7D4F;
   --danger:  #C24A3B;
@@ -39,8 +39,8 @@
   --radius-sm: 10px;
 
   --border-ink: 2px solid var(--ink-900);
-  --shadow-soft: 0 10px 30px rgba(28,33,24,0.10);
-  --shadow-card: 0 6px 0 rgba(28,33,24,0.9);
+  --shadow-soft: 0 10px 30px rgba(32,27,21,0.10);
+  --shadow-card: 0 6px 0 rgba(32,27,21,0.9);
   --shadow-pop: 5px 5px 0 var(--ink-900);
 }
 
@@ -51,7 +51,7 @@ body {
   background-color: var(--bg-body);
   background-image:
     radial-gradient(circle at 8% 12%, rgba(255,255,255,0.14) 0, transparent 40%),
-    radial-gradient(circle at 92% 88%, rgba(28,33,24,0.06) 0, transparent 45%);
+    radial-gradient(circle at 92% 88%, rgba(32,27,21,0.06) 0, transparent 45%);
   color: var(--ink-900);
   margin: 0;
   padding: 0;
@@ -366,7 +366,7 @@ a:hover { color: var(--ink-900); }
 .announce-empty { text-align: center; color: var(--ink-400); font-size: 0.85rem; padding: 20px; }
 
 .announce-modal-backdrop {
-  display: none; position: fixed; inset: 0; background: rgba(28,33,24,0.55); z-index: 2000;
+  display: none; position: fixed; inset: 0; background: rgba(32,27,21,0.55); z-index: 2000;
   align-items: center; justify-content: center; padding: 20px;
 }
 .announce-modal-backdrop.show { display: flex; }
