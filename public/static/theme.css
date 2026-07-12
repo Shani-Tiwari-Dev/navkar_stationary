@@ -180,6 +180,71 @@ a:hover { color: var(--ink-900); }
   .hero-illustration { order: -1; max-width: 340px; margin: 0 auto; }
 }
 
+/* ---------- Small phones: broader mobile fixes ---------- */
+@media (max-width: 480px) {
+  .site-shell { margin: 8px; border-radius: 16px; }
+
+  /* Nav */
+  .top-nav { padding: 12px 14px; gap: 10px; }
+  .brand-logo { font-size: 1rem; gap: 8px; }
+  .brand-logo-img { height: 36px; width: 36px; }
+  .nav-tabs-custom { gap: 2px; width: 100%; justify-content: center; }
+  .nav-tab-btn { padding: 7px 11px; font-size: 0.7rem; }
+  .top-nav > a.btn-hero-primary { padding: 8px 14px !important; font-size: 0.72rem !important; }
+  .wa-float { width: 48px; height: 48px; font-size: 1.35rem; bottom: 14px; right: 14px; }
+
+  /* Hero */
+  .hero-modern.hero-section { padding: 30px 16px 22px 16px; }
+  .hero-badge { font-size: 0.65rem; padding: 6px 13px; margin-bottom: 16px; }
+  .hero-title { font-size: 1.8rem; margin-bottom: 12px; }
+  .hero-desc { font-size: 0.9rem; }
+  .hero-cta-row { flex-direction: column; align-items: stretch; gap: 10px; margin-top: 22px; }
+  .btn-hero-primary, .btn-hero-secondary { justify-content: center; width: 100%; padding: 13px 20px; }
+
+  /* Page hero (inner pages) */
+  .page-hero { padding: 34px 16px 34px 16px; }
+  .page-hero h3 { font-size: 1.45rem; }
+  .page-hero p { font-size: 0.88rem; }
+
+  /* Sections */
+  .section-shell { padding: 34px 14px 6px 14px; }
+  .section-title { font-size: 1.45rem; }
+  .section-sub { font-size: 0.85rem; }
+  .services-grid { gap: 14px; margin-top: 24px; }
+  .service-card { padding: 20px 16px; }
+
+  /* About / contact stack cleanly */
+  .about-flex, .contact-flex { gap: 22px; }
+  .about-img, .about-text, .contact-info, .contact-form-wrap { flex-basis: 100%; }
+  .about-img img { max-height: 200px; }
+
+  /* Announcements */
+  .announce-bubble { width: 72px; }
+  .announce-ring { width: 58px; height: 58px; }
+
+  /* Forms & cards */
+  .form-card, .form-card.card-overlap { margin: 16px 12px 26px 12px; padding: 24px 18px; }
+  .cart-card { margin: 16px 12px 20px 12px; padding: 18px; }
+  .shop-card { margin: 16px 12px 24px 12px; }
+  .shop-info-body { padding: 20px; }
+
+  /* Admin */
+  .admin-shell .container { padding-left: 10px; padding-right: 10px; }
+  .top-bar { padding: 14px; }
+  .top-bar h5 { font-size: 0.95rem; }
+  .admin-tabs { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 6px; }
+  .admin-tab { white-space: nowrap; padding: 8px 13px; font-size: 0.78rem; }
+  .stat-card { padding: 16px; }
+  .stat-num { font-size: 1.6rem; }
+  .search-bar-wrap { flex-wrap: wrap; }
+  .search-bar-btn { width: 100%; }
+
+  /* Login / QR */
+  .login-card { padding: 30px 22px; }
+  .qr-card { padding: 34px 20px; }
+  .qr-image { width: 100%; height: auto; max-width: 260px; }
+}
+
 /* ---------- Cards that overlap the hero ---------- */
 .card-overlap { margin-top: -56px; position: relative; z-index: 10; }
 
