@@ -8,25 +8,144 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700;9..144,900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='theme.css') }}">
 </head>
 <body>
 
+<div class="site-shell">
     {% set active = 'home' %}
     {% include '_user_nav.html' %}
 
     <!-- ============ HERO ============ -->
     <div class="hero-section hero-modern">
-        <div class="hero-badge"><i class="bi bi-shop"></i> Your Trusted Campus Stationery Store</div>
-        <div class="hero-title">
-            Welcome to<br>
-            <span class="hero-highlight">Navkar Stationery</span>
+        <div class="hero-copy">
+            <div class="hero-badge"><i class="bi bi-shop"></i> Your Campus Stationery &amp; Xerox Corner</div>
+            <div class="hero-title">
+                Every project<br>starts with the<br><span class="hero-highlight">right page.</span>
+            </div>
+            <div class="hero-desc">From last-minute printouts to the notebook you forgot to buy &mdash; Navkar keeps your semester stocked, bound, and ready to submit. Order on WhatsApp, skip the queue.</div>
+            <div class="hero-cta-row">
+                <a href="{{ url_for('xerox') }}" class="btn-hero-primary"><i class="bi bi-printer-fill"></i> Xerox / Print</a>
+                <a href="{{ url_for('shop') }}" class="btn-hero-secondary"><i class="bi bi-cart-fill"></i> Shop Stationery</a>
+            </div>
         </div>
-        <div class="hero-desc">Xerox &amp; Stationery B/W Color Xerox, Scan & Net to print Lamination / Spiral Binding and quick queries — all answered directly on WhatsApp.</div>
-        <div class="hero-cta-row">
-            <a href="{{ url_for('xerox') }}" class="btn-hero-primary"><i class="bi bi-printer-fill"></i> Xerox / Print</a>
-            <a href="{{ url_for('shop') }}" class="btn-hero-secondary"><i class="bi bi-cart-fill"></i> Shop Stationery</a>
+        <div class="hero-illustration">
+            <svg viewBox="0 0 600 580" xmlns="http://www.w3.org/2000/svg">
+  <!-- sky doodles -->
+  <g stroke="#1C2118" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" fill="#FFFCF3">
+    <ellipse cx="95" cy="70" rx="34" ry="16"/>
+    <ellipse cx="123" cy="62" rx="24" ry="13"/>
+    <ellipse cx="66" cy="62" rx="20" ry="12"/>
+
+    <ellipse cx="330" cy="42" rx="30" ry="14"/>
+    <ellipse cx="356" cy="36" rx="20" ry="11"/>
+
+    <ellipse cx="470" cy="110" rx="28" ry="13"/>
+    <ellipse cx="494" cy="104" rx="18" ry="10"/>
+  </g>
+
+  <!-- paper airplane -->
+  <g stroke="#1C2118" stroke-width="3.5" stroke-linejoin="round" fill="#FFFCF3">
+    <path d="M500 60 L556 44 L522 96 L512 74 Z"/>
+    <path d="M500 60 L522 96 L512 74 Z" fill="#E1F0A0"/>
+  </g>
+  <path d="M480 66 q10 -4 18 -2" stroke="#1C2118" stroke-width="2.5" fill="none" stroke-linecap="round" opacity="0.6"/>
+
+  <!-- sparkle doodles -->
+  <g stroke="#1C2118" stroke-width="3" stroke-linecap="round">
+    <path d="M200 100 L200 116 M192 108 L208 108" />
+    <path d="M540 220 L540 232 M534 226 L546 226" />
+  </g>
+
+  <!-- hills -->
+  <path d="M0 580 L0 430 Q90 372 190 408 Q300 344 410 396 Q500 350 600 392 L600 580 Z" fill="#CFE774" stroke="#1C2118" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M0 580 L0 470 Q110 420 230 458 Q350 404 470 452 Q540 430 600 458 L600 580 Z" fill="#AAD62E" stroke="#1C2118" stroke-width="4" stroke-linejoin="round"/>
+
+  <!-- pencil tree -->
+  <g>
+    <rect x="470" y="330" width="16" height="110" rx="6" fill="#C99A5B" stroke="#1C2118" stroke-width="3.5"/>
+    <rect x="466" y="330" width="24" height="14" rx="4" fill="#F2B4C4" stroke="#1C2118" stroke-width="3.5"/>
+    <g stroke="#1C2118" stroke-width="3.5" stroke-linejoin="round">
+      <circle cx="478" cy="300" r="42" fill="#8FB824"/>
+      <circle cx="445" cy="320" r="30" fill="#9FC72A"/>
+      <circle cx="512" cy="318" r="30" fill="#9FC72A"/>
+    </g>
+    <circle cx="460" cy="285" r="7" fill="#F5D949" stroke="#1C2118" stroke-width="2.5"/>
+    <circle cx="500" cy="292" r="7" fill="#F2B4C4" stroke="#1C2118" stroke-width="2.5"/>
+    <circle cx="480" cy="320" r="7" fill="#7EC8E3" stroke="#1C2118" stroke-width="2.5"/>
+  </g>
+
+  <!-- stationery kiosk -->
+  <g stroke="#1C2118" stroke-width="4" stroke-linejoin="round">
+    <!-- sign pole -->
+    <rect x="315" y="185" width="8" height="40" fill="#C99A5B"/>
+    <!-- sign board -->
+    <rect x="262" y="150" width="114" height="42" rx="10" fill="#1C2118"/>
+    <text x="319" y="177" text-anchor="middle" font-family="Fraunces, serif" font-weight="700" font-size="20" fill="#E1F0A0" stroke="none">NAVKAR</text>
+
+    <!-- roof -->
+    <path d="M230 268 L319 210 L410 268 Z" fill="#6E9019"/>
+    <path d="M228 268 Q245 286 262 268 Q279 286 296 268 Q313 286 330 268 Q347 286 364 268 Q381 286 398 268 Q404 268 412 268 L412 280 L226 280 Z" fill="#8FB824"/>
+
+    <!-- building body -->
+    <rect x="248" y="280" width="142" height="140" rx="10" fill="#FFFCF3"/>
+
+    <!-- windows -->
+    <g fill="#EEF6C6">
+      <rect x="264" y="300" width="40" height="40" rx="6"/>
+      <rect x="336" y="300" width="40" height="40" rx="6"/>
+    </g>
+    <g stroke-width="3">
+      <line x1="284" y1="300" x2="284" y2="340"/>
+      <line x1="264" y1="320" x2="304" y2="320"/>
+      <line x1="356" y1="300" x2="356" y2="340"/>
+      <line x1="336" y1="320" x2="376" y2="320"/>
+    </g>
+
+    <!-- door -->
+    <path d="M300 420 L300 372 Q300 356 319 356 Q338 356 338 372 L338 420 Z" fill="#AAD62E"/>
+    <circle cx="329" cy="392" r="3.5" fill="#1C2118" stroke="none"/>
+
+    <!-- counter awning stripes -->
+    <path d="M248 280 L390 280 L390 292 L248 292 Z" fill="#FFFCF3"/>
+  </g>
+  <!-- pencils poking from a jar on the counter -->
+  <g stroke="#1C2118" stroke-width="3" stroke-linecap="round">
+    <line x1="405" y1="300" x2="418" y2="270" stroke="#F5D949"/>
+    <line x1="414" y1="302" x2="430" y2="275" stroke="#7EC8E3"/>
+    <line x1="423" y1="304" x2="438" y2="282" stroke="#F2B4C4"/>
+  </g>
+  <rect x="400" y="298" width="34" height="24" rx="5" fill="#EEF6C6" stroke="#1C2118" stroke-width="3.5"/>
+
+  <!-- eraser mascot -->
+  <g>
+    <!-- legs -->
+    <g stroke="#1C2118" stroke-width="4" stroke-linecap="round">
+      <line x1="118" y1="522" x2="112" y2="546"/>
+      <line x1="146" y1="522" x2="152" y2="546"/>
+    </g>
+    <ellipse cx="110" cy="550" rx="12" ry="7" fill="#1C2118"/>
+    <ellipse cx="154" cy="550" rx="12" ry="7" fill="#1C2118"/>
+
+    <!-- body -->
+    <path d="M96 470 Q96 446 132 446 Q168 446 168 470 L168 508 Q168 526 132 526 Q96 526 96 508 Z"
+          fill="#F2B4C4" stroke="#1C2118" stroke-width="4" stroke-linejoin="round"/>
+    <path d="M96 500 Q132 512 168 500 L168 508 Q168 526 132 526 Q96 526 96 508 Z"
+          fill="#E89AB0" stroke="#1C2118" stroke-width="4" stroke-linejoin="round"/>
+
+    <!-- arms -->
+    <path d="M96 476 Q76 480 72 498" stroke="#1C2118" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <path d="M168 476 Q188 480 194 494" stroke="#1C2118" stroke-width="4" fill="none" stroke-linecap="round"/>
+
+    <!-- face -->
+    <circle cx="116" cy="476" r="5" fill="#1C2118"/>
+    <circle cx="148" cy="476" r="5" fill="#1C2118"/>
+    <circle cx="108" cy="490" r="7" fill="#E1F0A0" opacity="0.9"/>
+    <circle cx="156" cy="490" r="7" fill="#E1F0A0" opacity="0.9"/>
+    <path d="M118 494 Q132 504 146 494" stroke="#1C2118" stroke-width="4" fill="none" stroke-linecap="round"/>
+  </g>
+</svg>
         </div>
     </div>
 
@@ -109,12 +228,12 @@
     </div>
 
     <!-- ============ ABOUT ============ -->
-    <div class="section-shell" style="background: var(--white); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); max-width: 1080px; margin: 20px auto 0 auto;">
+    <div class="section-shell" style="background: var(--white); border: var(--border-ink); border-radius: var(--radius-lg); box-shadow: var(--shadow-pop); max-width: 1080px; margin: 30px auto 0 auto; padding-top: 40px; padding-bottom: 40px;">
         <div class="section-eyebrow">Get To Know Us</div>
         <div class="section-title">About Navkar Stationery</div>
         <div class="about-flex" style="margin-top: 20px;">
             <div class="about-img">
-                <img src="{{ url_for('static', filename='owner.jpg') }}" alt="Navkar Stationery Shop">
+                <img src="{{ url_for('static', filename='owner.jpg') }}" alt="Navkar Stationery Shop" loading="lazy" decoding="async">
             </div>
             <div class="about-text">
                 <p style="color: var(--ink-600); line-height: 1.8; font-size: 0.95rem;">
@@ -206,17 +325,9 @@
     </div>
 
     <!-- ============ FOOTER ============ -->
-    <div class="site-footer">
-        <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Navkar Stationery" class="footer-logo-img">
-        <div class="footer-brand">Navkar Stationery</div>
-        <div class="footer-links">
-            <a href="{{ url_for('index') }}">Home</a>
-            <a href="{{ url_for('xerox') }}">Xerox / Print</a>
-            <a href="{{ url_for('shop') }}">Shop</a>
-            <a href="https://wa.me/{{ whatsapp_number }}" target="_blank">WhatsApp Us</a>
-        </div>
-        <div class="footer-note">&copy; 2026 Navkar Stationery. All rights reserved.</div>
-    </div>
+    {% include '_footer.html' %}
+
+    </div><!-- /.site-shell -->
 
     <script>
         function openAnnouncement(title, message, icon, color, date) {

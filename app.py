@@ -39,6 +39,21 @@ app = Flask(__name__, template_folder='template')
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "navkar_stationary_secret")
 app.config['MAX_CONTENT_LENGTH'] = 15 * 1024 * 1024  # 15 MB max upload size
 
+# Compress every HTML/CSS/JS/JSON response with gzip (falls back automatically
+# if the browser doesn't support it). This cuts payload size dramatically for
+# almost no CPU cost and helps a lot under concurrent load.
+try:
+    from flask_compress import Compress
+    Compress(app)
+except ImportError:
+    pass
+
+# Tell browsers to cache static files (images, css) for a year. Because the
+# upload routes already give files random uuid-based filenames, a changed
+# file gets a new URL automatically, so long caching here is safe and means
+# repeat visitors barely re-download anything.
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 60 * 60 * 24 * 365
+
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 XEROX_UPLOAD_FOLDER = os.path.join(BASE_DIR, 'static', 'uploads', 'xerox')
 PRODUCT_UPLOAD_FOLDER = os.path.join(BASE_DIR, 'static', 'uploads', 'products')
@@ -105,6 +120,63 @@ def allowed_file(filename, allowed_set):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in allowed_set
 
 
+def _resize_image_for_upload(file_storage, ext, max_width=900, quality=80):
+    """Shrink & compress a product photo before it's stored, so a phone
+    camera photo (often 3-5 MB) never ends up served to every shopper at
+    full size. Falls back to the original bytes if Pillow can't process it
+    (e.g. an unusual format)."""
+    try:
+        from PIL import Image
+        raw = file_storage.read()
+        img = Image.open(io.BytesIO(raw))
+        img = img.convert("RGB") if ext in ("jpg", "jpeg") else img.convert("RGBA")
+        if img.width > max_width:
+            ratio = max_width / img.width
+            img = img.resize((max_width, int(img.height * ratio)), Image.LANCZOS)
+        out = io.BytesIO()
+        if ext in ("jpg", "jpeg"):
+            img.save(out, "JPEG", quality=quality, optimize=True, progressive=True)
+            content_type = "image/jpeg"
+        elif ext == "png":
+            img.save(out, "PNG", optimize=True)
+            content_type = "image/png"
+        else:  # webp or anything else Pillow can still write
+            img.save(out, "WEBP", quality=quality)
+            content_type = "image/webp"
+        return out.getvalue(), content_type
+    except Exception:
+        file_storage.seek(0)
+        return file_storage.read(), (file_storage.mimetype or "application/octet-stream")
+
+
+# ---------------------------------------------------------------------------
+# Tiny TTL cache for hot, read-heavy pages (homepage announcements, shop
+# products). These are read on nearly every visitor request but only ever
+# change when the admin edits them, so caching for a few seconds massively
+# cuts the number of Supabase calls when many people browse at once, without
+# ever showing data more than a few seconds stale.
+# ---------------------------------------------------------------------------
+_cache_store = {}
+_cache_lock = threading.Lock()
+
+
+def cached(key, ttl_seconds, fetch_fn):
+    now = time.time()
+    with _cache_lock:
+        entry = _cache_store.get(key)
+        if entry and entry[0] > now:
+            return entry[1]
+    value = fetch_fn()
+    with _cache_lock:
+        _cache_store[key] = (now + ttl_seconds, value)
+    return value
+
+
+def invalidate_cache(key):
+    with _cache_lock:
+        _cache_store.pop(key, None)
+
+
 def _with_alias(rows):
     """Supabase rows use 'id' (bigint). Existing templates were written against
     MongoDB's '_id' field, so we mirror it as a string here to keep every
@@ -138,13 +210,22 @@ def count_rows(table, **filters):
 
 
 def get_admin_counts():
-    return {
-        "xerox_pending": count_rows(TABLE_XEROX, status="Pending"),
-        "orders_pending": count_rows(TABLE_ORDERS, status="Pending"),
-        "trash": count_rows(TABLE_TRASH),
-        "products": count_rows(TABLE_PRODUCTS),
-        "announcements": count_rows(TABLE_ANNOUNCEMENTS),
+    # These 5 counts are independent, so run them concurrently on a small
+    # thread pool instead of one-after-another - cuts this from ~5 sequential
+    # network round-trips to ~1, which matters a lot when several admins/
+    # pages are loading at once.
+    from concurrent.futures import ThreadPoolExecutor
+
+    jobs = {
+        "xerox_pending": lambda: count_rows(TABLE_XEROX, status="Pending"),
+        "orders_pending": lambda: count_rows(TABLE_ORDERS, status="Pending"),
+        "trash": lambda: count_rows(TABLE_TRASH),
+        "products": lambda: count_rows(TABLE_PRODUCTS),
+        "announcements": lambda: count_rows(TABLE_ANNOUNCEMENTS),
     }
+    with ThreadPoolExecutor(max_workers=5) as pool:
+        futures = {key: pool.submit(fn) for key, fn in jobs.items()}
+        return {key: f.result() for key, f in futures.items()}
 
 
 def login_required(view_func):
@@ -186,8 +267,11 @@ def index():
         flash("Query submitted successfully! 🚀", "success")
         return redirect(url_for('index'))
 
-    resp = supabase.table(TABLE_ANNOUNCEMENTS).select("*").order("id", desc=True).limit(12).execute()
-    announcements = _with_alias(resp.data)
+    def _fetch():
+        resp = supabase.table(TABLE_ANNOUNCEMENTS).select("*").order("id", desc=True).limit(12).execute()
+        return _with_alias(resp.data)
+
+    announcements = cached("home_announcements", 30, _fetch)
     return render_template('index.html', whatsapp_number=SHOP_WHATSAPP_NUMBER, announcements=announcements)
 
 
@@ -545,6 +629,7 @@ def admin_announcements_add():
         "color": color,
         "date": datetime.now().strftime("%d %b %Y, %I:%M %p")
     }).execute()
+    invalidate_cache("home_announcements")
     flash("Announcement posted! 📢", "success")
     return redirect(url_for('admin_announcements'))
 
@@ -553,6 +638,7 @@ def admin_announcements_add():
 @login_required
 def admin_announcements_delete(announcement_id):
     supabase.table(TABLE_ANNOUNCEMENTS).delete().eq("id", int(announcement_id)).execute()
+    invalidate_cache("home_announcements")
     flash("Announcement removed.", "success")
     return redirect(url_for('admin_announcements'))
 
@@ -562,8 +648,11 @@ def admin_announcements_delete(announcement_id):
 # ---------------------------------------------------------------------------
 @app.route('/shop')
 def shop():
-    resp = supabase.table(TABLE_PRODUCTS).select("*").order("id", desc=True).execute()
-    all_products = _with_alias(resp.data)
+    def _fetch():
+        resp = supabase.table(TABLE_PRODUCTS).select("*").order("id", desc=True).execute()
+        return _with_alias(resp.data)
+
+    all_products = cached("shop_products", 15, _fetch)
     cart = session.get('cart', {})
     cart_count = sum(cart.values()) if cart else 0
     return render_template('shop.html', products=all_products, cart=cart, cart_count=cart_count,
@@ -596,14 +685,25 @@ def cart_remove(product_id):
     return redirect(url_for('cart_view'))
 
 
+def _fetch_products_by_ids(pids):
+    """Fetch every product in `pids` in a single DB round-trip instead of
+    one query per item (avoids N+1 queries when carts have multiple items
+    or many users are checking out at once)."""
+    ids = [int(p) for p in pids]
+    if not ids:
+        return {}
+    resp = supabase.table(TABLE_PRODUCTS).select("*").in_("id", ids).execute()
+    return {str(p['id']): p for p in (resp.data or [])}
+
+
 @app.route('/cart')
 def cart_view():
     cart = session.get('cart', {})
+    products_by_id = _fetch_products_by_ids(cart.keys())
     items = []
     total = 0
     for pid, qty in cart.items():
-        resp = supabase.table(TABLE_PRODUCTS).select("*").eq("id", int(pid)).execute()
-        product = _one_or_none(resp.data)
+        product = products_by_id.get(str(pid))
         if product:
             line_total = product['price'] * qty
             total += line_total
@@ -631,9 +731,9 @@ def cart_submit():
 
     items = []
     total = 0
+    products_by_id = _fetch_products_by_ids(cart.keys())
     for pid, qty in cart.items():
-        resp = supabase.table(TABLE_PRODUCTS).select("*").eq("id", int(pid)).execute()
-        product = _one_or_none(resp.data)
+        product = products_by_id.get(str(pid))
         if product:
             line_total = product['price'] * qty
             total += line_total
@@ -682,8 +782,7 @@ def admin_stock_add():
             ext = photo_file.filename.rsplit('.', 1)[1].lower()
             photo_name = f"{uuid.uuid4().hex}.{ext}"
             storage_path = f"{STORAGE_PRODUCTS_PREFIX}/{photo_name}"
-            file_bytes = photo_file.read()
-            content_type = photo_file.mimetype or "application/octet-stream"
+            file_bytes, content_type = _resize_image_for_upload(photo_file, ext)
             supabase.storage.from_(STORAGE_BUCKET).upload(
                 storage_path, file_bytes, {"content-type": content_type}
             )
@@ -703,6 +802,7 @@ def admin_stock_add():
         "photo": photo_url,
         "date": datetime.now().strftime("%d %b %Y, %I:%M %p")
     }).execute()
+    invalidate_cache("shop_products")
     flash("Product added to stock. ✅", "success")
     return redirect(url_for('admin_stock'))
 
@@ -711,6 +811,7 @@ def admin_stock_add():
 @login_required
 def admin_stock_delete(product_id):
     supabase.table(TABLE_PRODUCTS).delete().eq("id", int(product_id)).execute()
+    invalidate_cache("shop_products")
     flash("Product removed from stock.", "success")
     return redirect(url_for('admin_stock'))
 

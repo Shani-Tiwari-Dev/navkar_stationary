@@ -1,4 +1,5 @@
 Flask
+Flask-Compress
 supabase
 python-dotenv
 qrcode
