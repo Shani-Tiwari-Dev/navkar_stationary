@@ -21,6 +21,9 @@
         <a href="{{ url_for('admin_orders') }}" class="admin-tab {% if active=='orders' %}active{% endif %}"><i class="bi bi-cart-check"></i> Orders
             {% if counts and counts.orders_pending %}<span class="badge-count">{{ counts.orders_pending }}</span>{% endif %}
         </a>
+        <a href="{{ url_for('admin_reviews') }}" class="admin-tab {% if active=='reviews' %}active{% endif %}"><i class="bi bi-star"></i> Reviews
+            {% if counts and counts.reviews_pending %}<span class="badge-count">{{ counts.reviews_pending }}</span>{% endif %}
+        </a>
         <a href="{{ url_for('admin_trash') }}" class="admin-tab {% if active=='trash' %}active{% endif %}"><i class="bi bi-trash3"></i> Trash
             {% if counts and counts.trash %}<span class="badge-count">{{ counts.trash }}</span>{% endif %}
         </a>

@@ -39,7 +39,18 @@
                 {% endif %}
                 <div class="flex-grow-1">
                     <div class="fw-bold small">{{ item.name }}</div>
-                    <div class="text-muted small">Qty: {{ item.qty }} × ₹{{ "%.2f"|format(item.price) }}</div>
+                    <div class="text-muted small mb-1">₹{{ "%.2f"|format(item.price) }} each</div>
+                    <div class="d-flex align-items-center gap-2">
+                        <form action="{{ url_for('cart_update', product_id=item.id) }}" method="POST">
+                            <input type="hidden" name="action" value="decrease">
+                            <button type="submit" class="qty-btn" aria-label="Decrease quantity">−</button>
+                        </form>
+                        <span class="fw-bold small">{{ item.qty }}</span>
+                        <form action="{{ url_for('cart_update', product_id=item.id) }}" method="POST">
+                            <input type="hidden" name="action" value="increase">
+                            <button type="submit" class="qty-btn" aria-label="Increase quantity">+</button>
+                        </form>
+                    </div>
                 </div>
                 <div class="fw-bold">₹{{ "%.2f"|format(item.line_total) }}</div>
                 <form action="{{ url_for('cart_remove', product_id=item.id) }}" method="POST">
@@ -74,6 +85,10 @@
                 <div class="mb-3">
                     <label class="form-label">WhatsApp Number *</label>
                     <input type="text" name="whatsapp_number" class="form-control" required placeholder="e.g. 919876543210">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Comment / Description (optional)</label>
+                    <textarea name="comment" class="form-control" rows="3" placeholder="Anything you'd like to tell us about this order..."></textarea>
                 </div>
                 <button type="submit" class="btn-submit"><i class="bi bi-send"></i> Submit Order Request</button>
             </form>

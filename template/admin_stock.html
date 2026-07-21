@@ -40,6 +40,19 @@
                         <label class="form-label">Photo</label>
                         <input type="file" name="photo" accept=".jpg,.jpeg,.png,.webp" class="form-control">
                     </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Category</label>
+                        <select name="category_choice" class="form-select" id="categoryChoice" onchange="document.getElementById('newCategoryWrap').style.display = (this.value === '__new__') ? 'block' : 'none';">
+                            {% for c in categories %}
+                            <option value="{{ c }}">{{ c }}</option>
+                            {% endfor %}
+                            <option value="__new__">+ Create New Category</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6" id="newCategoryWrap" style="display:none;">
+                        <label class="form-label">New Category Name</label>
+                        <input type="text" name="new_category" class="form-control" placeholder="e.g. Pens & Pencils">
+                    </div>
                 </div>
                 <button type="submit" class="btn btn-dark btn-custom mt-3"><i class="bi bi-box-seam"></i> Add to Stock</button>
             </form>
@@ -56,6 +69,7 @@
                     <div class="no-photo"><i class="bi bi-image"></i></div>
                     {% endif %}
                     <div class="p-3">
+                        {% if p.category %}<div class="category-pill mb-1">{{ p.category }}</div>{% endif %}
                         <div class="fw-bold">{{ p.name }}</div>
                         <div class="text-amber fw-bold mb-2">₹{{ "%.2f"|format(p.price) }}</div>
                         <form action="{{ url_for('admin_stock_delete', product_id=p._id) }}" method="POST" onsubmit="return confirm('Remove this product from stock?');">

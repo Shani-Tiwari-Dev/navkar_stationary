@@ -52,6 +52,7 @@
             <div class="text-muted small mb-2">
                 <i class="bi bi-person"></i> <strong>{{ r.name }}</strong> |
                 <i class="bi bi-whatsapp"></i> {{ r.whatsapp_number }} |
+                {% if r.department %}<i class="bi bi-mortarboard"></i> {{ r.department }}{% if r.semester %} — Sem {{ r.semester }}{% endif %} |{% endif %}
                 <i class="bi bi-files"></i> Copies: {{ r.copies }} |
                 <i class="bi bi-clock"></i> {{ r.date }}
             </div>
@@ -76,6 +77,13 @@
                 {% if r.status == 'Accepted' %}
                 <a href="{{ url_for('admin_xerox_file', req_id=r._id) }}" target="_blank" class="btn btn-success btn-custom">
                     <i class="bi bi-printer-fill"></i> Open to Print
+                </a>
+                {% endif %}
+
+                {% if r.status == 'Rejected' %}
+                {% set wa_text = "Hello " ~ r.name ~ ",\nRegarding your Xerox/Print request for '" ~ r.original_filename ~ "':\n\nSorry, we are unable to process this request." %}
+                <a href="https://wa.me/{{ r.whatsapp_number }}?text={{ wa_text | urlencode }}" target="_blank" class="btn btn-success btn-custom">
+                    <i class="bi bi-whatsapp"></i> Send WA
                 </a>
                 {% endif %}
 

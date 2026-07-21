@@ -49,6 +49,10 @@
                 </div>
             </div>
 
+            {% if o.comment %}
+            <div class="small mt-2"><i class="bi bi-chat-square-text"></i> <strong>Note:</strong> {{ o.comment }}</div>
+            {% endif %}
+
             <div class="d-flex flex-wrap gap-2 mt-3">
                 <a href="https://wa.me/{{ o.whatsapp_number }}" target="_blank" class="btn btn-success btn-custom">
                     <i class="bi bi-whatsapp"></i> Message on WhatsApp

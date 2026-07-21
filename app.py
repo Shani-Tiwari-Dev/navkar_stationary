@@ -137,6 +137,7 @@ TABLE_PRODUCTS = "products"
 TABLE_ORDERS = "orders"
 TABLE_TRASH = "trash"
 TABLE_ANNOUNCEMENTS = "announcements"
+TABLE_REVIEWS = "reviews"
 
 # WhatsApp number for the shop (used for the "Chat on WhatsApp" button)
 SHOP_WHATSAPP_NUMBER = "919825089454"
@@ -248,6 +249,7 @@ def get_admin_counts():
         "trash": lambda: count_rows(TABLE_TRASH),
         "products": lambda: count_rows(TABLE_PRODUCTS),
         "announcements": lambda: count_rows(TABLE_ANNOUNCEMENTS),
+        "reviews_pending": lambda: count_rows(TABLE_REVIEWS, status="Pending"),
     }
     with ThreadPoolExecutor(max_workers=5) as pool:
         futures = {key: pool.submit(fn) for key, fn in jobs.items()}
@@ -298,7 +300,14 @@ def index():
         return _with_alias(resp.data)
 
     announcements = cached("home_announcements", 30, _fetch)
-    return render_template('index.html', whatsapp_number=SHOP_WHATSAPP_NUMBER, announcements=announcements)
+
+    def _fetch_reviews():
+        resp = supabase.table(TABLE_REVIEWS).select("*").eq("status", "Approved").order("id", desc=True).limit(12).execute()
+        return _with_alias(resp.data)
+
+    reviews = cached("home_reviews", 30, _fetch_reviews)
+
+    return render_template('index.html', whatsapp_number=SHOP_WHATSAPP_NUMBER, announcements=announcements, reviews=reviews)
 
 
 # ---------------------------------------------------------------------------
@@ -481,6 +490,8 @@ def xerox():
     if request.method == 'POST':
         name = request.form.get('name')
         whatsapp_number = request.form.get('whatsapp_number')
+        department = request.form.get('department')
+        semester = request.form.get('semester')
         copies = request.form.get('copies') or "1"
         instructions = request.form.get('instructions')
         file = request.files.get('document')
@@ -508,6 +519,8 @@ def xerox():
         supabase.table(TABLE_XEROX).insert({
             "name": name,
             "whatsapp_number": clean_number,
+            "department": department,
+            "semester": semester,
             "original_filename": secure_filename(file.filename),
             "stored_filename": stored_name,
             "copies": copies,
@@ -670,6 +683,80 @@ def admin_announcements_delete(announcement_id):
 
 
 # ---------------------------------------------------------------------------
+# REVIEWS (customer feedback -> curated "Our Happy Customers" homepage section)
+# ---------------------------------------------------------------------------
+@app.route('/review', methods=['GET', 'POST'])
+def review():
+    if request.method == 'POST':
+        name = request.form.get('name')
+        whatsapp_number = request.form.get('whatsapp_number')
+        review_text = request.form.get('review_text')
+        try:
+            rating = max(1, min(5, int(request.form.get('rating', 5))))
+        except (TypeError, ValueError):
+            rating = 5
+
+        clean_number = ''.join(filter(str.isdigit, whatsapp_number))
+
+        supabase.table(TABLE_REVIEWS).insert({
+            "name": name,
+            "whatsapp_number": clean_number,
+            "review_text": review_text,
+            "rating": rating,
+            "status": "Pending",
+            "date": datetime.now().strftime("%d %b %Y, %I:%M %p")
+        }).execute()
+
+        flash("Thank you for your feedback! Your review has been submitted. 🌟", "success")
+        return redirect(url_for('review'))
+
+    return render_template('review.html', whatsapp_number=SHOP_WHATSAPP_NUMBER)
+
+
+@app.route('/admin/reviews')
+@login_required
+def admin_reviews():
+    status_filter = request.args.get('status', '').strip()
+    q = supabase.table(TABLE_REVIEWS).select("*").order("id", desc=True)
+    if status_filter:
+        q = q.eq("status", status_filter)
+    all_reviews = _with_alias(q.execute().data)
+
+    stats = {
+        "total": count_rows(TABLE_REVIEWS),
+        "pending": count_rows(TABLE_REVIEWS, status="Pending"),
+        "approved": count_rows(TABLE_REVIEWS, status="Approved"),
+        "deleted": count_rows(TABLE_REVIEWS, status="Deleted"),
+    }
+    return render_template('admin_reviews.html', reviews=all_reviews, stats=stats,
+                            counts=get_admin_counts(), status_filter=status_filter)
+
+
+@app.route('/admin/reviews/update/<review_id>', methods=['POST'])
+@login_required
+def admin_reviews_update(review_id):
+    new_status = request.form.get('status')
+    supabase.table(TABLE_REVIEWS).update({"status": new_status}).eq("id", int(review_id)).execute()
+    invalidate_cache("home_reviews")
+    if new_status == "Approved":
+        flash("Review approved and posted to Our Happy Customers! ⭐", "success")
+    elif new_status == "Deleted":
+        flash("Review marked as deleted.", "success")
+    else:
+        flash("Review set to pending.", "success")
+    return redirect(url_for('admin_reviews'))
+
+
+@app.route('/admin/reviews/delete/<review_id>', methods=['POST'])
+@login_required
+def admin_reviews_delete(review_id):
+    supabase.table(TABLE_REVIEWS).delete().eq("id", int(review_id)).execute()
+    invalidate_cache("home_reviews")
+    flash("Review permanently removed. 🗑️", "success")
+    return redirect(url_for('admin_reviews'))
+
+
+# ---------------------------------------------------------------------------
 # STOCK MANAGEMENT + SHOPPING (cart-to-request, no online payment)
 # ---------------------------------------------------------------------------
 @app.route('/shop')
@@ -679,10 +766,25 @@ def shop():
         return _with_alias(resp.data)
 
     all_products = cached("shop_products", 15, _fetch)
+
+    categories = sorted({(p.get('category') or 'Uncategorized') for p in all_products})
+
+    search_q = request.args.get('q', '').strip()
+    category_filter = request.args.get('category', '').strip()
+
+    products = all_products
+    if search_q:
+        needle = search_q.lower()
+        products = [p for p in products if needle in (p.get('name') or '').lower()
+                    or needle in (p.get('category') or '').lower()]
+    if category_filter:
+        products = [p for p in products if (p.get('category') or 'Uncategorized') == category_filter]
+
     cart = session.get('cart', {})
     cart_count = sum(cart.values()) if cart else 0
-    return render_template('shop.html', products=all_products, cart=cart, cart_count=cart_count,
-                            whatsapp_number=SHOP_WHATSAPP_NUMBER)
+    return render_template('shop.html', products=products, cart=cart, cart_count=cart_count,
+                            whatsapp_number=SHOP_WHATSAPP_NUMBER, categories=categories,
+                            search_q=search_q, category_filter=category_filter)
 
 
 @app.route('/cart/add/<product_id>', methods=['POST'])
@@ -693,8 +795,13 @@ def cart_add(product_id):
         flash("This product is no longer available.", "danger")
         return redirect(url_for('shop'))
 
+    try:
+        qty = max(1, int(request.form.get('quantity', 1)))
+    except (TypeError, ValueError):
+        qty = 1
+
     cart = session.get('cart', {})
-    cart[product_id] = cart.get(product_id, 0) + 1
+    cart[product_id] = cart.get(product_id, 0) + qty
     session['cart'] = cart
     session.modified = True
     flash(f"Added '{product['name']}' to your cart.", "success")
@@ -706,6 +813,24 @@ def cart_remove(product_id):
     cart = session.get('cart', {})
     if product_id in cart:
         del cart[product_id]
+        session['cart'] = cart
+        session.modified = True
+    return redirect(url_for('cart_view'))
+
+
+@app.route('/cart/update/<product_id>', methods=['POST'])
+def cart_update(product_id):
+    """Increase or decrease an item's quantity from the cart page (+ / - buttons).
+    Quantity dropping to 0 removes the item."""
+    action = request.form.get('action')
+    cart = session.get('cart', {})
+    if product_id in cart:
+        if action == 'increase':
+            cart[product_id] += 1
+        elif action == 'decrease':
+            cart[product_id] -= 1
+            if cart[product_id] <= 0:
+                del cart[product_id]
         session['cart'] = cart
         session.modified = True
     return redirect(url_for('cart_view'))
@@ -753,6 +878,7 @@ def cart_submit():
 
     name = request.form.get('name')
     whatsapp_number = request.form.get('whatsapp_number')
+    comment = (request.form.get('comment') or '').strip()
     clean_number = ''.join(filter(str.isdigit, whatsapp_number))
 
     items = []
@@ -776,6 +902,7 @@ def cart_submit():
         "whatsapp_number": clean_number,
         "line_items": items,
         "total": total,
+        "comment": comment,
         "status": "Pending",
         "date": datetime.now().strftime("%d %b %Y, %I:%M %p")
     }).execute()
@@ -792,7 +919,8 @@ def cart_submit():
 def admin_stock():
     resp = supabase.table(TABLE_PRODUCTS).select("*").order("id", desc=True).execute()
     all_products = _with_alias(resp.data)
-    return render_template('admin_stock.html', products=all_products, counts=get_admin_counts())
+    categories = sorted({(p.get('category') or 'Uncategorized') for p in all_products})
+    return render_template('admin_stock.html', products=all_products, counts=get_admin_counts(), categories=categories)
 
 
 @app.route('/admin/stock/add', methods=['POST'])
@@ -801,6 +929,12 @@ def admin_stock_add():
     name = request.form.get('name')
     price = request.form.get('price')
     photo_file = request.files.get('photo')
+
+    category_choice = (request.form.get('category_choice') or '').strip()
+    new_category = (request.form.get('new_category') or '').strip()
+    category = new_category if category_choice == '__new__' and new_category else category_choice
+    if not category:
+        category = 'Uncategorized'
 
     photo_url = None
     if photo_file and photo_file.filename != '':
@@ -826,6 +960,7 @@ def admin_stock_add():
         "name": name,
         "price": price_val,
         "photo": photo_url,
+        "category": category,
         "date": datetime.now().strftime("%d %b %Y, %I:%M %p")
     }).execute()
     invalidate_cache("shop_products")

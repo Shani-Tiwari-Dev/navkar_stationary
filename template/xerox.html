@@ -48,6 +48,22 @@
 
                 <div class="row">
                     <div class="col-md-6 mb-3">
+                        <label class="form-label">Department *</label>
+                        <input type="text" name="department" class="form-control" required placeholder="e.g. Computer Engineering">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Semester *</label>
+                        <select name="semester" class="form-select" required>
+                            <option value="" selected disabled>Select Semester</option>
+                            {% for s in range(1, 9) %}
+                            <option value="{{ s }}">Semester {{ s }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
                         <label class="form-label">Number of Copies</label>
                         <input type="number" name="copies" min="1" value="1" class="form-control">
                     </div>
