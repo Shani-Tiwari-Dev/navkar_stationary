@@ -480,12 +480,25 @@ a:hover { color: var(--ink-900); }
 /* ==========================================================================
    New features: quantity stepper, category pills, star ratings, reviews
    ========================================================================== */
-.qty-stepper { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 8px; }
-.qty-btn { background: var(--ink-100); color: var(--ink-900); border: 1.5px solid var(--ink-900); border-radius: 8px; width: 28px; height: 28px; font-weight: 700; font-size: 1rem; line-height: 1; display: flex; align-items: center; justify-content: center; }
-.qty-btn:hover { background: var(--amber-200); }
-.qty-input { width: 20px; text-align: center; border: 1.5px solid var(--ink-900); border-radius: 8px; font-weight: 700; font-size: 0.85rem; padding: 4px 2px; -moz-appearance: textfield; }
+.btn-add { background: var(--amber-500); color: var(--ink-900); border: 1.5px solid var(--ink-900); border-radius: 999px; padding: 9px 4px; width: 100%; font-weight: 700; font-size: 0.8rem; transition: background .15s ease; white-space: nowrap; }
+.btn-add:hover { background: var(--amber-400); color: var(--ink-900); }
+
+/* ---------- Quantity stepper (shop + cart) ---------- */
+/* Default size - used bare (no .qty-stepper wrapper) on the cart page */
+.qty-btn { width: 30px; height: 30px; border-radius: 50%; border: 1.5px solid var(--ink-900); background: var(--white); color: var(--ink-900); font-weight: 800; font-size: 1rem; line-height: 1; display: flex; align-items: center; justify-content: center; padding: 0; cursor: pointer; transition: background .15s ease; flex-shrink: 0; }
+.qty-btn:hover { background: var(--amber-100); }
+.qty-input { width: 40px; text-align: center; border: none; background: transparent; font-weight: 700; color: var(--ink-900); -moz-appearance: textfield; }
 .qty-input::-webkit-outer-spin-button, .qty-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 
+/* On the shop product card, the stepper sits BESIDE the Add to Cart button
+   (not stacked above it), inside a pill-shaped .qty-stepper wrapper - so it
+   needs to be more compact to fit in one row. */
+.qty-add-row { display: flex; align-items: center; gap: 6px; margin-top: 8px; }
+.qty-add-row .btn-add { flex: 1 1 auto; min-width: 0; }
+.qty-stepper { display: flex; align-items: center; justify-content: center; gap: 4px; flex: 0 0 auto; background: var(--ink-100); border: 1.5px solid var(--ink-900); border-radius: 999px; padding: 3px; }
+.qty-stepper .qty-btn { width: 24px; height: 24px; border: none; background: var(--white); font-size: 0.95rem; }
+.qty-stepper .qty-btn:hover { background: var(--amber-200); }
+.qty-stepper .qty-input { width: 22px; font-size: 0.85rem; padding: 0; }
 .category-pill { display: inline-block; background: var(--amber-100); color: var(--ink-900); border: 1.5px solid var(--ink-900); font-weight: 700; font-size: 0.68rem; padding: 3px 10px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.03em; }
 
 .search-sort-select { background: var(--white); border: 1.5px solid var(--ink-900); border-radius: 10px; padding: 8px 10px; font-weight: 600; font-size: 0.85rem; color: var(--ink-900); }
