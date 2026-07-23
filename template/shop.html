@@ -62,16 +62,14 @@
                         {% if p.category %}<div class="category-pill">{{ p.category }}</div>{% endif %}
                         <div class="product-name">{{ p.name }}</div>
                         <div class="product-price">₹{{ "%.2f"|format(p.price) }}</div>
-                    <form action="{{ url_for('cart_add', product_id=p._id) }}" method="POST" class="qty-add-form">
-                        <div class="qty-add-row">
-                            <div class="qty-stepper">
-                                <button type="button" class="qty-btn qty-minus">−</button>
-                                <input type="number" name="qty" value="1" min="1" class="qty-input" readonly>
-                                <button type="button" class="qty-btn qty-plus">+</button>
+                        <form action="{{ url_for('cart_add', product_id=p._id) }}" method="POST" class="qty-add-form">
+                            <div class="qty-stepper" data-qty-stepper>
+                                <button type="button" class="qty-btn" data-qty-minus>−</button>
+                                <input type="number" name="quantity" value="1" min="1" class="qty-input" data-qty-input>
+                                <button type="button" class="qty-btn" data-qty-plus>+</button>
                             </div>
-                            <button type="submit" class="btn-add"><i class="bi bi-plus-circle"></i> Add</button>
-                        </div>
-                    </form>
+                            <button type="submit" class="btn-add" title="Add to Cart"><i class="bi bi-plus-circle"></i><span class="btn-add-label">Add</span></button>
+                        </form>
                     </div>
                 </div>
             </div>
@@ -88,13 +86,15 @@
     {% include '_footer.html' %}
 </div><!-- /.site-shell -->
 <script>
-document.querySelectorAll('.qty-stepper').forEach(function (stepper) {
-    var input = stepper.querySelector('.qty-input');
-    stepper.querySelector('.qty-plus').addEventListener('click', function () {
-        input.value = parseInt(input.value || '1', 10) + 1;
+document.querySelectorAll('[data-qty-stepper]').forEach(function (stepper) {
+    var input = stepper.querySelector('[data-qty-input]');
+    stepper.querySelector('[data-qty-minus]').addEventListener('click', function () {
+        var v = Math.max(1, (parseInt(input.value, 10) || 1) - 1);
+        input.value = v;
     });
-    stepper.querySelector('.qty-minus').addEventListener('click', function () {
-        input.value = Math.max(1, parseInt(input.value || '1', 10) - 1);
+    stepper.querySelector('[data-qty-plus]').addEventListener('click', function () {
+        var v = (parseInt(input.value, 10) || 1) + 1;
+        input.value = v;
     });
 });
 </script>
