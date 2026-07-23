@@ -88,15 +88,13 @@
     {% include '_footer.html' %}
 </div><!-- /.site-shell -->
 <script>
-document.querySelectorAll('[data-qty-stepper]').forEach(function (stepper) {
-    var input = stepper.querySelector('[data-qty-input]');
-    stepper.querySelector('[data-qty-minus]').addEventListener('click', function () {
-        var v = Math.max(1, (parseInt(input.value, 10) || 1) - 1);
-        input.value = v;
+document.querySelectorAll('.qty-stepper').forEach(function (stepper) {
+    var input = stepper.querySelector('.qty-input');
+    stepper.querySelector('.qty-plus').addEventListener('click', function () {
+        input.value = parseInt(input.value || '1', 10) + 1;
     });
-    stepper.querySelector('[data-qty-plus]').addEventListener('click', function () {
-        var v = (parseInt(input.value, 10) || 1) + 1;
-        input.value = v;
+    stepper.querySelector('.qty-minus').addEventListener('click', function () {
+        input.value = Math.max(1, parseInt(input.value || '1', 10) - 1);
     });
 });
 </script>
