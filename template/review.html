@@ -18,7 +18,7 @@
 
     <div class="page-hero">
         <h3><i class="bi bi-star-fill"></i> Write a Review</h3>
-        <p>Tell us and other customers about your experience with Navkar Stationery.</p>
+        <p>Tell us about your experience — your feedback helps us serve you better.</p>
     </div>
 
     <div class="container" style="max-width: 600px;">
@@ -31,63 +31,37 @@
                 {% endif %}
             {% endwith %}
 
-            <div class="info-note"><i class="bi bi-info-circle"></i> Your review will be checked by our admin before it appears publicly on the homepage.</div>
-
-            <form action="{{ url_for('review') }}" method="POST" id="reviewForm">
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">Full Name *</label>
-                        <input type="text" name="name" class="form-control" required placeholder="e.g. Rahul Sharma">
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">WhatsApp Number *</label>
-                        <input type="text" name="whatsapp_number" class="form-control" required placeholder="e.g. 919876543210">
-                    </div>
+            <form action="{{ url_for('review') }}" method="POST">
+                <div class="mb-3">
+                    <label class="form-label">Full Name *</label>
+                    <input type="text" name="name" class="form-control" required placeholder="e.g. Rahul Sharma">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">WhatsApp Number *</label>
+                    <input type="text" name="whatsapp_number" class="form-control" required placeholder="e.g. 919876543210">
                 </div>
 
                 <div class="mb-3">
                     <label class="form-label d-block">Your Rating *</label>
-                    <div class="star-picker" id="starPicker">
-                        <i class="bi bi-star-fill star" data-value="1"></i>
-                        <i class="bi bi-star-fill star" data-value="2"></i>
-                        <i class="bi bi-star-fill star" data-value="3"></i>
-                        <i class="bi bi-star-fill star" data-value="4"></i>
-                        <i class="bi bi-star-fill star" data-value="5"></i>
+                    <div class="star-input">
+                        <input type="radio" id="star5" name="rating" value="5" checked><label for="star5">★</label>
+                        <input type="radio" id="star4" name="rating" value="4"><label for="star4">★</label>
+                        <input type="radio" id="star3" name="rating" value="3"><label for="star3">★</label>
+                        <input type="radio" id="star2" name="rating" value="2"><label for="star2">★</label>
+                        <input type="radio" id="star1" name="rating" value="1"><label for="star1">★</label>
                     </div>
-                    <input type="hidden" name="rating" id="ratingInput" value="5" required>
                 </div>
 
                 <div class="mb-4">
                     <label class="form-label">Your Review *</label>
-                    <textarea name="review_text" class="form-control" rows="4" required placeholder="Tell us about your experience..."></textarea>
+                    <textarea name="review_text" class="form-control" rows="4" required placeholder="Tell us what you liked..."></textarea>
                 </div>
 
-                <button type="submit" class="btn-submit"><i class="bi bi-send-fill"></i> Submit Review</button>
+                <button type="submit" class="btn-submit"><i class="bi bi-send"></i> Submit Review</button>
             </form>
         </div>
     </div>
     {% include '_footer.html' %}
 </div><!-- /.site-shell -->
-<script>
-(function () {
-    var stars = document.querySelectorAll('#starPicker .star');
-    var input = document.getElementById('ratingInput');
-
-    function paint(value) {
-        stars.forEach(function (s) {
-            s.classList.toggle('active', parseInt(s.dataset.value, 10) <= value);
-        });
-    }
-
-    stars.forEach(function (s) {
-        s.addEventListener('click', function () {
-            input.value = s.dataset.value;
-            paint(parseInt(s.dataset.value, 10));
-        });
-    });
-
-    paint(parseInt(input.value, 10));
-})();
-</script>
 </body>
 </html>

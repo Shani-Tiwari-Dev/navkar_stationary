@@ -305,10 +305,9 @@ def index():
         resp = supabase.table(TABLE_REVIEWS).select("*").eq("status", "Approved").order("id", desc=True).limit(12).execute()
         return _with_alias(resp.data)
 
-    happy_customer_reviews = cached("home_reviews", 30, _fetch_reviews)
+    reviews = cached("home_reviews", 30, _fetch_reviews)
 
-    return render_template('index.html', whatsapp_number=SHOP_WHATSAPP_NUMBER, announcements=announcements,
-                            reviews=happy_customer_reviews)
+    return render_template('index.html', whatsapp_number=SHOP_WHATSAPP_NUMBER, announcements=announcements, reviews=reviews)
 
 
 # ---------------------------------------------------------------------------
@@ -684,7 +683,7 @@ def admin_announcements_delete(announcement_id):
 
 
 # ---------------------------------------------------------------------------
-# REVIEWS (customer feedback -> approved ones shown as "Our Happy Customers")
+# REVIEWS (customer feedback -> curated "Our Happy Customers" homepage section)
 # ---------------------------------------------------------------------------
 @app.route('/review', methods=['GET', 'POST'])
 def review():
@@ -693,10 +692,9 @@ def review():
         whatsapp_number = request.form.get('whatsapp_number')
         review_text = request.form.get('review_text')
         try:
-            rating = int(request.form.get('rating', 5))
+            rating = max(1, min(5, int(request.form.get('rating', 5))))
         except (TypeError, ValueError):
             rating = 5
-        rating = min(5, max(1, rating))
 
         clean_number = ''.join(filter(str.isdigit, whatsapp_number))
 
@@ -708,6 +706,7 @@ def review():
             "status": "Pending",
             "date": datetime.now().strftime("%d %b %Y, %I:%M %p")
         }).execute()
+
         flash("Thank you for your feedback! Your review has been submitted. 🌟", "success")
         return redirect(url_for('review'))
 
@@ -717,22 +716,20 @@ def review():
 @app.route('/admin/reviews')
 @login_required
 def admin_reviews():
-    search_q = request.args.get('q', '').strip()
-
+    status_filter = request.args.get('status', '').strip()
     q = supabase.table(TABLE_REVIEWS).select("*").order("id", desc=True)
-    if search_q:
-        q = q.ilike("name", f"%{search_q}%")
+    if status_filter:
+        q = q.eq("status", status_filter)
     all_reviews = _with_alias(q.execute().data)
 
     stats = {
         "total": count_rows(TABLE_REVIEWS),
         "pending": count_rows(TABLE_REVIEWS, status="Pending"),
         "approved": count_rows(TABLE_REVIEWS, status="Approved"),
-        "rejected": count_rows(TABLE_REVIEWS, status="Rejected"),
+        "deleted": count_rows(TABLE_REVIEWS, status="Deleted"),
     }
-
     return render_template('admin_reviews.html', reviews=all_reviews, stats=stats,
-                            counts=get_admin_counts(), search_q=search_q)
+                            counts=get_admin_counts(), status_filter=status_filter)
 
 
 @app.route('/admin/reviews/update/<review_id>', methods=['POST'])
@@ -741,11 +738,12 @@ def admin_reviews_update(review_id):
     new_status = request.form.get('status')
     supabase.table(TABLE_REVIEWS).update({"status": new_status}).eq("id", int(review_id)).execute()
     invalidate_cache("home_reviews")
-
     if new_status == "Approved":
-        flash("Review approved and posted to the homepage. ✅", "success")
+        flash("Review approved and posted to Our Happy Customers! ⭐", "success")
+    elif new_status == "Deleted":
+        flash("Review marked as deleted.", "success")
     else:
-        flash("Review status updated.", "success")
+        flash("Review set to pending.", "success")
     return redirect(url_for('admin_reviews'))
 
 
@@ -754,7 +752,7 @@ def admin_reviews_update(review_id):
 def admin_reviews_delete(review_id):
     supabase.table(TABLE_REVIEWS).delete().eq("id", int(review_id)).execute()
     invalidate_cache("home_reviews")
-    flash("Review deleted permanently. 🗑️", "success")
+    flash("Review permanently removed. 🗑️", "success")
     return redirect(url_for('admin_reviews'))
 
 
@@ -768,26 +766,25 @@ def shop():
         return _with_alias(resp.data)
 
     all_products = cached("shop_products", 15, _fetch)
-    categories = sorted({p.get('category') for p in all_products if p.get('category')})
+
+    categories = sorted({(p.get('category') or 'Uncategorized') for p in all_products})
 
     search_q = request.args.get('q', '').strip()
-    selected_category = request.args.get('category', '').strip()
+    category_filter = request.args.get('category', '').strip()
 
     products = all_products
-    if selected_category:
-        products = [p for p in products if p.get('category') == selected_category]
     if search_q:
         needle = search_q.lower()
-        products = [
-            p for p in products
-            if needle in (p.get('name') or '').lower() or needle in (p.get('category') or '').lower()
-        ]
+        products = [p for p in products if needle in (p.get('name') or '').lower()
+                    or needle in (p.get('category') or '').lower()]
+    if category_filter:
+        products = [p for p in products if (p.get('category') or 'Uncategorized') == category_filter]
 
     cart = session.get('cart', {})
     cart_count = sum(cart.values()) if cart else 0
     return render_template('shop.html', products=products, cart=cart, cart_count=cart_count,
                             whatsapp_number=SHOP_WHATSAPP_NUMBER, categories=categories,
-                            search_q=search_q, selected_category=selected_category)
+                            search_q=search_q, category_filter=category_filter)
 
 
 @app.route('/cart/add/<product_id>', methods=['POST'])
@@ -799,7 +796,7 @@ def cart_add(product_id):
         return redirect(url_for('shop'))
 
     try:
-        qty = max(1, int(request.form.get('qty', 1)))
+        qty = max(1, int(request.form.get('quantity', 1)))
     except (TypeError, ValueError):
         qty = 1
 
@@ -821,16 +818,17 @@ def cart_remove(product_id):
     return redirect(url_for('cart_view'))
 
 
-@app.route('/cart/update/<product_id>/<action>', methods=['POST'])
-def cart_update(product_id, action):
-    """Plus/minus quantity stepper on the cart page. action is 'increase'
-    or 'decrease' - decreasing to 0 removes the item entirely."""
+@app.route('/cart/update/<product_id>', methods=['POST'])
+def cart_update(product_id):
+    """Increase or decrease an item's quantity from the cart page (+ / - buttons).
+    Quantity dropping to 0 removes the item."""
+    action = request.form.get('action')
     cart = session.get('cart', {})
     if product_id in cart:
         if action == 'increase':
-            cart[product_id] = cart[product_id] + 1
+            cart[product_id] += 1
         elif action == 'decrease':
-            cart[product_id] = cart[product_id] - 1
+            cart[product_id] -= 1
             if cart[product_id] <= 0:
                 del cart[product_id]
         session['cart'] = cart
@@ -902,9 +900,9 @@ def cart_submit():
     supabase.table(TABLE_ORDERS).insert({
         "name": name,
         "whatsapp_number": clean_number,
-        "comment": comment,
         "line_items": items,
         "total": total,
+        "comment": comment,
         "status": "Pending",
         "date": datetime.now().strftime("%d %b %Y, %I:%M %p")
     }).execute()
@@ -921,9 +919,8 @@ def cart_submit():
 def admin_stock():
     resp = supabase.table(TABLE_PRODUCTS).select("*").order("id", desc=True).execute()
     all_products = _with_alias(resp.data)
-    categories = sorted({p.get('category') for p in all_products if p.get('category')})
-    return render_template('admin_stock.html', products=all_products, counts=get_admin_counts(),
-                            categories=categories)
+    categories = sorted({(p.get('category') or 'Uncategorized') for p in all_products})
+    return render_template('admin_stock.html', products=all_products, counts=get_admin_counts(), categories=categories)
 
 
 @app.route('/admin/stock/add', methods=['POST'])
@@ -933,13 +930,11 @@ def admin_stock_add():
     price = request.form.get('price')
     photo_file = request.files.get('photo')
 
-    # Category: admin either picks an existing category from the dropdown,
-    # or types a brand new one in the "new category" box - the new one wins
-    # whenever it's filled in.
+    category_choice = (request.form.get('category_choice') or '').strip()
     new_category = (request.form.get('new_category') or '').strip()
-    selected_category = (request.form.get('category') or '').strip()
-    category = new_category if new_category else selected_category
-    category = category or 'General'
+    category = new_category if category_choice == '__new__' and new_category else category_choice
+    if not category:
+        category = 'Uncategorized'
 
     photo_url = None
     if photo_file and photo_file.filename != '':

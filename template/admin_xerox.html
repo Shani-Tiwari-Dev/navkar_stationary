@@ -52,7 +52,7 @@
             <div class="text-muted small mb-2">
                 <i class="bi bi-person"></i> <strong>{{ r.name }}</strong> |
                 <i class="bi bi-whatsapp"></i> {{ r.whatsapp_number }} |
-                {% if r.department %}<i class="bi bi-building"></i> {{ r.department }}{% if r.semester %} — Sem {{ r.semester }}{% endif %} |{% endif %}
+                {% if r.department %}<i class="bi bi-mortarboard"></i> {{ r.department }}{% if r.semester %} — Sem {{ r.semester }}{% endif %} |{% endif %}
                 <i class="bi bi-files"></i> Copies: {{ r.copies }} |
                 <i class="bi bi-clock"></i> {{ r.date }}
             </div>
@@ -80,6 +80,13 @@
                 </a>
                 {% endif %}
 
+                {% if r.status == 'Rejected' %}
+                {% set wa_text = "Hello " ~ r.name ~ ",\nRegarding your Xerox/Print request for '" ~ r.original_filename ~ "':\n\nSorry, we are unable to process this request." %}
+                <a href="https://wa.me/{{ r.whatsapp_number }}?text={{ wa_text | urlencode }}" target="_blank" class="btn btn-success btn-custom">
+                    <i class="bi bi-whatsapp"></i> Send WA
+                </a>
+                {% endif %}
+
                 <form action="{{ url_for('admin_xerox_update', req_id=r._id) }}" method="POST" class="d-flex gap-2 ms-auto">
                     <input type="hidden" name="status" value="Accepted">
                     <button type="submit" class="btn btn-success btn-custom" {% if r.status=='Accepted' %}disabled{% endif %}>
@@ -98,13 +105,6 @@
                         <i class="bi bi-trash3"></i> Delete
                     </button>
                 </form>
-
-                {% if r.status == 'Rejected' %}
-                {% set wa_text = "Hello " ~ r.name ~ ",\nRegarding your Xerox/Print request for '" ~ r.original_filename ~ "':\n\nSorry, we are unable to process this request." %}
-                <a href="https://wa.me/{{ r.whatsapp_number }}?text={{ wa_text | urlencode }}" target="_blank" class="btn btn-success btn-custom">
-                    <i class="bi bi-whatsapp"></i> Send WA
-                </a>
-                {% endif %}
             </div>
         </div>
         {% endfor %}
