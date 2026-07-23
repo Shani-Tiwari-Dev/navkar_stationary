@@ -229,33 +229,29 @@
 
     <!-- ============ REVIEWS ============ -->
     <div class="section-shell">
-        <div class="section-eyebrow">Testimonials</div>
+        <div class="section-eyebrow">What They Say</div>
         <div class="section-title">Our Happy Customers</div>
-        <div class="section-sub">See what people are saying about Navkar Stationery — and share your own experience.</div>
+        <div class="section-sub">Real feedback from real customers. Had a good experience with us? <a href="{{ url_for('review') }}">Write a review</a>.</div>
 
-        {% if reviews %}
-        <div class="review-scroll">
-            {% for r in reviews %}
-            <div class="review-card">
-                <div class="star-rating">
-                    {% for i in range(1,6) %}{% if i <= r.rating %}★{% else %}<span class="empty">★</span>{% endif %}{% endfor %}
+        <div class="row g-3 mt-2">
+            {% for rv in reviews %}
+            <div class="col-md-4">
+                <div class="review-card">
+                    <span class="star-rating">
+                        {% for i in range(1, 6) %}
+                        {% if i <= rv.rating %}<i class="bi bi-star-fill"></i>{% else %}<i class="bi bi-star-fill star-empty"></i>{% endif %}
+                        {% endfor %}
+                    </span>
+                    <div class="review-name"><i class="bi bi-person-circle"></i> {{ rv.name }}</div>
+                    <div class="review-text">"{{ rv.review_text }}"</div>
                 </div>
-                <div class="review-name mt-2">{{ r.name }}</div>
-                <div class="review-text">{{ r.review_text }}</div>
+            </div>
+            {% else %}
+            <div class="col-12 text-center text-muted py-3">
+                <i class="bi bi-chat-heart fs-2"></i>
+                <p class="mt-2 mb-0">No reviews yet — be the first to <a href="{{ url_for('review') }}">share your experience</a>!</p>
             </div>
             {% endfor %}
-        </div>
-        {% else %}
-        <div class="text-center py-4 text-muted">
-            <i class="bi bi-star fs-2"></i>
-            <p class="mt-2 mb-0">Be the first to share your experience!</p>
-        </div>
-        {% endif %}
-
-        <div class="text-center mt-3">
-            <a href="{{ url_for('review') }}" class="btn-hero-secondary" style="display:inline-block;">
-                <i class="bi bi-pencil-square"></i> Write a Review
-            </a>
         </div>
     </div>
 

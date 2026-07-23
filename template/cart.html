@@ -39,16 +39,14 @@
                 {% endif %}
                 <div class="flex-grow-1">
                     <div class="fw-bold small">{{ item.name }}</div>
-                    <div class="text-muted small mb-1">₹{{ "%.2f"|format(item.price) }} each</div>
-                    <div class="d-flex align-items-center gap-2">
-                        <form action="{{ url_for('cart_update', product_id=item.id) }}" method="POST">
-                            <input type="hidden" name="action" value="decrease">
-                            <button type="submit" class="qty-btn" aria-label="Decrease quantity">−</button>
+                    <div class="text-muted small">₹{{ "%.2f"|format(item.price) }} each</div>
+                    <div class="d-flex align-items-center gap-2 mt-1">
+                        <form action="{{ url_for('cart_update', product_id=item.id, action='decrease') }}" method="POST">
+                            <button type="submit" class="qty-btn qty-minus" title="Decrease quantity">−</button>
                         </form>
-                        <span class="fw-bold small">{{ item.qty }}</span>
-                        <form action="{{ url_for('cart_update', product_id=item.id) }}" method="POST">
-                            <input type="hidden" name="action" value="increase">
-                            <button type="submit" class="qty-btn" aria-label="Increase quantity">+</button>
+                        <span class="fw-bold">{{ item.qty }}</span>
+                        <form action="{{ url_for('cart_update', product_id=item.id, action='increase') }}" method="POST">
+                            <button type="submit" class="qty-btn qty-plus" title="Increase quantity">+</button>
                         </form>
                     </div>
                 </div>
