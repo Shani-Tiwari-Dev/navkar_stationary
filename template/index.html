@@ -319,6 +319,24 @@
                             </div>
                         </div>
 
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Course</label>
+                                <select name="course_choice" id="courseChoiceQuery" class="form-select"
+                                        onchange="document.getElementById('newCourseWrapQuery').style.display = (this.value === '__other__') ? 'block' : 'none';">
+                                    <option value="">Select Course</option>
+                                    {% for c in course_choices %}
+                                    <option value="{{ c }}">{{ c }}</option>
+                                    {% endfor %}
+                                    <option value="__other__">Other (please specify)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3" id="newCourseWrapQuery" style="display:none;">
+                                <label class="form-label">Specify Course</label>
+                                <input type="text" name="new_course" class="form-control" placeholder="e.g. B.Pharm">
+                            </div>
+                        </div>
+
                         <div class="mb-4">
                             <label class="form-label">Detailed Requirement *</label>
                             <textarea name="subject" class="form-control" rows="4" required placeholder="Describe what exactly you need in detail..."></textarea>

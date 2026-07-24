@@ -138,9 +138,28 @@ TABLE_ORDERS = "orders"
 TABLE_TRASH = "trash"
 TABLE_ANNOUNCEMENTS = "announcements"
 TABLE_REVIEWS = "reviews"
+TABLE_REPORT_STUDENTS = "report_students"
 
 # WhatsApp number for the shop (used for the "Chat on WhatsApp" button)
 SHOP_WHATSAPP_NUMBER = "919825089454"
+
+# Course options shown on the Query & Xerox forms. Students can also type a
+# custom course via "Other" if theirs isn't listed.
+COURSE_CHOICES = [
+    "Diploma Engineering",
+    "B.E. / B.Tech",
+    "M.E. / M.Tech",
+    "BBA",
+    "BCA",
+    "MCA",
+    "B.Com",
+    "M.Com",
+    "MBA",
+    "B.Sc",
+    "M.Sc",
+    "B.A.",
+    "M.A.",
+]
 
 
 def allowed_file(filename, allowed_set):
@@ -229,6 +248,54 @@ def _strip_row_id(row):
     return row
 
 
+# ---------------------------------------------------------------------------
+# REPORT GENERATION PIPELINE
+# ---------------------------------------------------------------------------
+# Every time a Query or Xerox form is submitted, we ALSO copy just the fields
+# needed for reporting (name, whatsapp_number, department, course, semester)
+# into a separate `report_students` table. This is a one-way, additive side
+# copy — it never reads from or modifies `queries` / `xerox_requests`, so the
+# original submit-a-query / xerox workflow and data are completely
+# unaffected. Report generation (Admin > Reports) only ever reads from
+# `report_students`.
+#
+# De-duplication by WhatsApp number: `report_students.whatsapp_number` has a
+# UNIQUE constraint in the database, so this uses an upsert — if a row with
+# the same WhatsApp number already exists, it is UPDATED in place with the
+# latest name/department/course/semester. A new/different WhatsApp number
+# always creates a fresh, unique row. This keeps the report table at exactly
+# one row per real student, no matter how many forms they've filled.
+def sync_student_report(name, whatsapp_number, department, course, semester):
+    if not whatsapp_number:
+        # Without a WhatsApp number there's nothing to de-duplicate on, so
+        # skip the report copy rather than risk creating junk/duplicate rows.
+        return
+    try:
+        supabase.table(TABLE_REPORT_STUDENTS).upsert({
+            "name": name,
+            "whatsapp_number": whatsapp_number,
+            "department": department,
+            "course": course,
+            "semester": semester,
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        }, on_conflict="whatsapp_number").execute()
+    except Exception as e:
+        # The report pipeline must NEVER break the real query/xerox workflow,
+        # so any failure here is only logged, never raised.
+        print("[report pipeline] could not sync report_students row:", e)
+
+
+def _resolve_course(form):
+    """Read course_choice (+ optional new_course for 'Other') from a
+    submitted form, the same '+ Create New' pattern used for product
+    categories on the Stock page."""
+    course_choice = (form.get('course_choice') or '').strip()
+    new_course = (form.get('new_course') or '').strip()
+    if course_choice == '__other__':
+        return new_course
+    return course_choice
+
+
 def count_rows(table, **filters):
     q = supabase.table(table).select("id", count="exact")
     for key, value in filters.items():
@@ -278,6 +345,7 @@ def index():
         department = request.form.get('department')
         semester = request.form.get('semester')
         subject = request.form.get('subject')
+        course = _resolve_course(request.form)
 
         clean_number = ''.join(filter(str.isdigit, whatsapp_number))
 
@@ -285,6 +353,7 @@ def index():
             "name": name,
             "whatsapp_number": clean_number,
             "department": department,
+            "course": course,
             "semester": semester,
             "subject": subject,
             "status": "Pending",
@@ -292,6 +361,12 @@ def index():
             "date": datetime.now().strftime("%d %b %Y, %I:%M %p")
         }
         supabase.table(TABLE_QUERIES).insert(new_query).execute()
+
+        # Report generation pipeline: copy just the report-relevant fields
+        # into report_students (deduped by WhatsApp number). The original
+        # query row/workflow above is already saved and unaffected by this.
+        sync_student_report(name, clean_number, department, course, semester)
+
         flash("Query submitted successfully! 🚀", "success")
         return redirect(url_for('index'))
 
@@ -307,7 +382,8 @@ def index():
 
     reviews = cached("home_reviews", 30, _fetch_reviews)
 
-    return render_template('index.html', whatsapp_number=SHOP_WHATSAPP_NUMBER, announcements=announcements, reviews=reviews)
+    return render_template('index.html', whatsapp_number=SHOP_WHATSAPP_NUMBER, announcements=announcements,
+                            reviews=reviews, course_choices=COURSE_CHOICES)
 
 
 # ---------------------------------------------------------------------------
@@ -494,6 +570,7 @@ def xerox():
         semester = request.form.get('semester')
         copies = request.form.get('copies') or "1"
         instructions = request.form.get('instructions')
+        course = _resolve_course(request.form)
         file = request.files.get('document')
 
         if not file or file.filename == '':
@@ -520,6 +597,7 @@ def xerox():
             "name": name,
             "whatsapp_number": clean_number,
             "department": department,
+            "course": course,
             "semester": semester,
             "original_filename": secure_filename(file.filename),
             "stored_filename": stored_name,
@@ -529,10 +607,15 @@ def xerox():
             "date": datetime.now().strftime("%d %b %Y, %I:%M %p")
         }).execute()
 
+        # Report generation pipeline: copy just the report-relevant fields
+        # into report_students (deduped by WhatsApp number). The xerox
+        # request row/workflow above is already saved and unaffected by this.
+        sync_student_report(name, clean_number, department, course, semester)
+
         flash("Document uploaded! We will review it and confirm on WhatsApp. 📄", "success")
         return redirect(url_for('xerox'))
 
-    return render_template('xerox.html', whatsapp_number=SHOP_WHATSAPP_NUMBER)
+    return render_template('xerox.html', whatsapp_number=SHOP_WHATSAPP_NUMBER, course_choices=COURSE_CHOICES)
 
 
 @app.route('/admin/xerox')
@@ -1040,6 +1123,101 @@ def admin_trash_clear():
     supabase.table(TABLE_TRASH).delete().gt("id", 0).execute()
     flash("Trash bin cleared.", "success")
     return redirect(url_for('admin_trash'))
+
+
+# ---------------------------------------------------------------------------
+# ADMIN - REPORT GENERATION (Excel)
+# ---------------------------------------------------------------------------
+# Reads ONLY from report_students (never from queries / xerox_requests), so
+# this feature can never touch or exploit the original request data/workflow.
+@app.route('/admin/reports')
+@login_required
+def admin_reports():
+    resp = supabase.table(TABLE_REPORT_STUDENTS).select("*").execute()
+    rows = resp.data or []
+
+    departments = sorted({r['department'] for r in rows if r.get('department')})
+    courses = sorted({r['course'] for r in rows if r.get('course')})
+    semesters = sorted({r['semester'] for r in rows if r.get('semester')},
+                        key=lambda s: (len(s), s))
+
+    return render_template(
+        'admin_reports.html',
+        counts=get_admin_counts(),
+        total_students=len(rows),
+        departments=departments,
+        courses=courses,
+        semesters=semesters,
+    )
+
+
+@app.route('/admin/reports/export')
+@login_required
+def admin_reports_export():
+    filter_type = request.args.get('filter_type', 'all')
+    filter_value = request.args.get('filter_value', '').strip()
+
+    q = supabase.table(TABLE_REPORT_STUDENTS).select("*")
+    sheet_title = "All Students"
+    if filter_type == 'department' and filter_value:
+        q = q.eq('department', filter_value)
+        sheet_title = f"Dept - {filter_value}"
+    elif filter_type == 'course' and filter_value:
+        q = q.eq('course', filter_value)
+        sheet_title = f"Course - {filter_value}"
+    elif filter_type == 'semester' and filter_value:
+        q = q.eq('semester', filter_value)
+        sheet_title = f"Semester {filter_value}"
+
+    rows = q.order('name').execute().data or []
+
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill, Alignment
+    from openpyxl.utils import get_column_letter
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = sheet_title[:31] or "Student Report"  # Excel sheet-name limit
+
+    headers = ["Sr No.", "Student Name", "WhatsApp Number", "Department", "Course", "Semester"]
+    ws.append(headers)
+    header_fill = PatternFill(start_color="1F2937", end_color="1F2937", fill_type="solid")
+    for col_idx in range(1, len(headers) + 1):
+        cell = ws.cell(row=1, column=col_idx)
+        cell.font = Font(bold=True, color="FFFFFF")
+        cell.fill = header_fill
+        cell.alignment = Alignment(horizontal="center")
+
+    for i, r in enumerate(rows, start=1):
+        ws.append([
+            i,
+            r.get('name') or '',
+            r.get('whatsapp_number') or '',
+            r.get('department') or '',
+            r.get('course') or '',
+            r.get('semester') or '',
+        ])
+
+    for idx, width in enumerate([8, 26, 18, 24, 20, 12], start=1):
+        ws.column_dimensions[get_column_letter(idx)].width = width
+    ws.freeze_panes = "A2"
+
+    buffer = io.BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+
+    filename_bits = ["student_report"]
+    if filter_type != 'all' and filter_value:
+        filename_bits.append(filter_type)
+        filename_bits.append(secure_filename(filter_value).lower() or "value")
+    filename_bits.append(datetime.now().strftime("%Y%m%d_%H%M"))
+    filename = "_".join(filename_bits) + ".xlsx"
+
+    return Response(
+        buffer.getvalue(),
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+    )
 
 
 # ---------------------------------------------------------------------------

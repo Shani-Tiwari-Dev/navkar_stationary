@@ -4,3 +4,4 @@ supabase
 python-dotenv
 qrcode
 Pillow
+openpyxl

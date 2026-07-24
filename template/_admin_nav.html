@@ -24,6 +24,7 @@
         <a href="{{ url_for('admin_reviews') }}" class="admin-tab {% if active=='reviews' %}active{% endif %}"><i class="bi bi-star"></i> Reviews
             {% if counts and counts.reviews_pending %}<span class="badge-count">{{ counts.reviews_pending }}</span>{% endif %}
         </a>
+        <a href="{{ url_for('admin_reports') }}" class="admin-tab {% if active=='reports' %}active{% endif %}"><i class="bi bi-file-earmark-spreadsheet"></i> Reports</a>
         <a href="{{ url_for('admin_trash') }}" class="admin-tab {% if active=='trash' %}active{% endif %}"><i class="bi bi-trash3"></i> Trash
             {% if counts and counts.trash %}<span class="badge-count">{{ counts.trash }}</span>{% endif %}
         </a>
