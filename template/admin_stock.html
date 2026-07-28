@@ -42,7 +42,7 @@
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Category</label>
-                        <select name="category_choice" class="form-select" id="categoryChoice" onchange="document.getElementById('newCategoryWrap').style.display = (this.value === '__new__') ? 'block' : 'none';">
+                        <select name="category_choice" class="form-select" id="categoryChoice" onchange="toggleNewCategoryBox();">
                             {% for c in categories %}
                             <option value="{{ c }}">{{ c }}</option>
                             {% endfor %}
@@ -57,6 +57,17 @@
                 <button type="submit" class="btn btn-dark btn-custom mt-3"><i class="bi bi-box-seam"></i> Add to Stock</button>
             </form>
         </div>
+        <script>
+            function toggleNewCategoryBox() {
+                var choice = document.getElementById('categoryChoice');
+                var wrap = document.getElementById('newCategoryWrap');
+                wrap.style.display = (choice.value === '__new__') ? 'block' : 'none';
+            }
+            // Run on page load too, in case "+ Create New Category" is already
+            // the selected option by default (e.g. no products/categories exist
+            // yet), since the change event only fires on an actual change.
+            toggleNewCategoryBox();
+        </script>
 
         <h5 class="fw-bold mb-3"><i class="bi bi-boxes"></i> Current Stock ({{ products|length }})</h5>
         <div class="row">
