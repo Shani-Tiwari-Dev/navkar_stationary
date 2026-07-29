@@ -458,6 +458,20 @@ def delete_query(query_id):
 
     return redirect(url_for('admin'))
 
+
+@app.route('/delete_all_queries', methods=['POST'])
+@login_required
+def delete_all_queries():
+    """Delete every query in one click, instead of deleting one-by-one.
+    Manual per-row deletion (delete_query) still works as before."""
+    try:
+        supabase.table(TABLE_QUERIES).delete().gt("id", 0).execute()
+        flash("All queries deleted successfully. 🗑️", "success")
+    except Exception as e:
+        flash(f"Error deleting all queries: {e}", "danger")
+
+    return redirect(url_for('admin'))
+
 # ---------------------------------------------------------------------------
 # XEROX / PRINTOUT SYSTEM
 # ---------------------------------------------------------------------------
@@ -708,6 +722,25 @@ def admin_xerox_delete(req_id):
 
     _delete_xerox_row(row)
     flash("Document deleted permanently. 🗑️", "success")
+    return redirect(url_for('admin_xerox'))
+
+
+@app.route('/admin/xerox/delete_all', methods=['POST'])
+@login_required
+def admin_xerox_delete_all():
+    """Delete every xerox request in one click, instead of deleting one-by-one.
+    Removes each row's uploaded file from storage too (same cleanup as a
+    manual single delete), so nothing is left orphaned. Manual per-row
+    deletion (admin_xerox_delete) still works as before."""
+    try:
+        resp = supabase.table(TABLE_XEROX).select("*").execute()
+        rows = resp.data or []
+        for row in rows:
+            _delete_xerox_row(row)
+        flash(f"All {len(rows)} print/xerox requests deleted permanently. 🗑️", "success")
+    except Exception as e:
+        flash(f"Error deleting all requests: {e}", "danger")
+
     return redirect(url_for('admin_xerox'))
 
 
@@ -1151,11 +1184,25 @@ def admin_reports():
     )
 
 
+def _safe_sheet_title(title):
+    """Excel worksheet names can't contain \\ / ? * [ ] : and can't be blank
+    or longer than 31 chars. Course names like 'B.E. / B.Tech' contain a
+    '/', which made openpyxl raise an error and crash the whole report
+    export whenever that course was selected. Strip/replace anything
+    illegal here so ANY department/course/semester value is always safe."""
+    for ch in ['\\', '/', '?', '*', '[', ']', ':']:
+        title = title.replace(ch, '-')
+    title = title.strip() or "Student Report"
+    return title[:31]
+
+
 @app.route('/admin/reports/export')
 @login_required
 def admin_reports_export():
     filter_type = request.args.get('filter_type', 'all')
     filter_value = request.args.get('filter_value', '').strip()
+    filter_course = request.args.get('filter_course', '').strip()
+    filter_semester = request.args.get('filter_semester', '').strip()
 
     q = supabase.table(TABLE_REPORT_STUDENTS).select("*")
     sheet_title = "All Students"
@@ -1168,6 +1215,14 @@ def admin_reports_export():
     elif filter_type == 'semester' and filter_value:
         q = q.eq('semester', filter_value)
         sheet_title = f"Semester {filter_value}"
+    elif filter_type == 'course_semester' and filter_course and filter_semester:
+        # Course-wise AND semester-wise together, e.g. only BCA students who
+        # are in semester 5 — not every BCA student, not every 5th-sem
+        # student across all courses.
+        q = q.eq('course', filter_course).eq('semester', filter_semester)
+        sheet_title = f"{filter_course} - Sem {filter_semester}"
+
+    sheet_title = _safe_sheet_title(sheet_title)
 
     rows = q.order('name').execute().data or []
 
@@ -1177,7 +1232,7 @@ def admin_reports_export():
 
     wb = Workbook()
     ws = wb.active
-    ws.title = sheet_title[:31] or "Student Report"  # Excel sheet-name limit
+    ws.title = sheet_title  # already sanitized + length-limited by _safe_sheet_title
 
     headers = ["Sr No.", "Student Name", "WhatsApp Number", "Department", "Course", "Semester"]
     ws.append(headers)
@@ -1207,7 +1262,10 @@ def admin_reports_export():
     buffer.seek(0)
 
     filename_bits = ["student_report"]
-    if filter_type != 'all' and filter_value:
+    if filter_type == 'course_semester' and filter_course and filter_semester:
+        filename_bits.append(secure_filename(filter_course).lower() or "course")
+        filename_bits.append(f"sem{secure_filename(filter_semester).lower()}")
+    elif filter_type != 'all' and filter_value:
         filename_bits.append(filter_type)
         filename_bits.append(secure_filename(filter_value).lower() or "value")
     filename_bits.append(datetime.now().strftime("%Y%m%d_%H%M"))

@@ -73,6 +73,11 @@
                                onchange="onFilterTypeChange()">
                         <label class="btn btn-outline-dark w-100 btn-custom" for="ft_sem"><i class="bi bi-calendar3"></i> Semester-wise</label>
                     </div>
+                    <div class="col-12 col-md-3">
+                        <input type="radio" class="btn-check" name="filter_type" id="ft_coursesem" value="course_semester"
+                               onchange="onFilterTypeChange()">
+                        <label class="btn btn-outline-dark w-100 btn-custom" for="ft_coursesem"><i class="bi bi-mortarboard-fill"></i> Course + Semester</label>
+                    </div>
                 </div>
 
                 <div id="valueWrap" class="mb-3" style="display:none;">
@@ -104,6 +109,35 @@
                     {% endif %}
                 </div>
 
+                <!-- Course + Semester: two dropdowns shown together, combined with AND
+                     so e.g. "BCA" + "5" returns ONLY BCA students in semester 5, not
+                     every BCA student and not every 5th-sem student from other courses. -->
+                <div id="courseSemWrap" class="mb-3" style="display:none;">
+                    <div class="row g-2">
+                        <div class="col-12 col-md-6">
+                            <label class="form-label">Course</label>
+                            <select name="filter_course" id="courseSemCourseSelect" class="form-select">
+                                <option value="">Select Course</option>
+                                {% for c in courses %}
+                                <option value="{{ c }}">{{ c }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label">Semester</label>
+                            <select name="filter_semester" id="courseSemSemesterSelect" class="form-select">
+                                <option value="">Select Semester</option>
+                                {% for s in semesters %}
+                                <option value="{{ s }}">Semester {{ s }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    {% if not courses or not semesters %}
+                    <div class="text-muted small mt-1">No student data collected yet — this list fills in once students start submitting the Query / Xerox forms.</div>
+                    {% endif %}
+                </div>
+
                 <button type="submit" class="btn-submit"><i class="bi bi-download"></i> Download Excel Report</button>
             </form>
         </div>
@@ -113,14 +147,32 @@
         function onFilterTypeChange() {
             const type = document.querySelector('input[name="filter_type"]:checked').value;
             const wrap = document.getElementById('valueWrap');
+            const courseSemWrap = document.getElementById('courseSemWrap');
             const selects = document.querySelectorAll('.filter-value-select');
             selects.forEach(s => { s.style.display = 'none'; s.removeAttribute('name'); });
 
+            // Course+Semester selects only submit when that mode is active, so
+            // switching away from it never leaks a stale filter_course/filter_semester.
+            const courseSemCourse = document.getElementById('courseSemCourseSelect');
+            const courseSemSemester = document.getElementById('courseSemSemesterSelect');
+            courseSemCourse.removeAttribute('name');
+            courseSemSemester.removeAttribute('name');
+
             if (type === 'all') {
                 wrap.style.display = 'none';
+                courseSemWrap.style.display = 'none';
                 return;
             }
 
+            if (type === 'course_semester') {
+                wrap.style.display = 'none';
+                courseSemWrap.style.display = 'block';
+                courseSemCourse.setAttribute('name', 'filter_course');
+                courseSemSemester.setAttribute('name', 'filter_semester');
+                return;
+            }
+
+            courseSemWrap.style.display = 'none';
             wrap.style.display = 'block';
             let activeSelect = null;
             let label = 'Select Value';

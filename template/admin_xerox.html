@@ -41,6 +41,15 @@
             <button type="submit" class="search-bar-btn">Search</button>
         </form>
 
+        {% if grouped %}
+        <form action="{{ url_for('admin_xerox_delete_all') }}" method="POST" class="mb-4"
+              onsubmit="return confirm('Delete ALL print/xerox requests permanently? This removes every uploaded file and record right now and cannot be undone.');">
+            <button type="submit" class="btn btn-danger btn-custom w-100">
+                <i class="bi bi-trash3-fill"></i> Delete All Requests
+            </button>
+        </form>
+        {% endif %}
+
         {% for group in grouped %}
         <div class="date-group-header"><i class="bi bi-calendar3"></i> {{ group.day }}</div>
         {% for r in group.requests %}
